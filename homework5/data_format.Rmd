@@ -1,0 +1,48 @@
+---
+title: "hw5"
+author: "Zhiying Hu"
+date: '2022-10-28'
+output: html_document
+---
+
+```{r}
+# create a non-empty dataframe with 1e06 rows and 5 columns, two of the columns completely identical
+rv_unif <- runif(1e6)
+rv_exp <- rexp(1e6)
+rv_norm <- rnorm(1e6)
+rv_lognorm <- rlnorm(1e6)
+rv5 <- rv_lognorm
+rv <- data.frame(rv_unif, rv_exp, rv_norm, rv_lognorm, rv5)
+```
+
+```{r}
+# write out the "HDF" file
+library(rhdf5)
+path1 <- "data.rhdf5"
+time1 <- system.time(h5write(rv,path1,"HDF")) # get the time needed
+```
+
+```{r}
+# write out the "feather" file
+library(arrow)
+path2 <- "data.feather"
+time2 <- system.time(write_feather(rv,path2)) # get the time needed
+```
+
+```{r}
+# write out the "Parquet" file
+library(arrow)
+path3 <- "data.Parquet"
+time3 <- system.time(write_parquet(rv,path3)) # get the time needed
+```
+
+```{r}
+time <- matrix(c(time1,time2,time3),5,3)
+time
+```
+```{r}
+rownames(time) <- c("user.self","sys.self","elapsed","user.child","sys.child")
+colnames(time) <- c("HDF", "Feather", "Parquet")
+write.table(time, file = "time")
+```
+
