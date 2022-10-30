@@ -2,7 +2,7 @@
 
 This is the solution of first 6 weeks' exercise submitted by: 
 
-Zhiying Hu (zhiyong.hu@uzh.ch) 
+Zhiying Hu (zhiying.hu@uzh.ch) 
 
 Xuanzhi Lin (xuanzhi.lin@uzh.ch)
 
