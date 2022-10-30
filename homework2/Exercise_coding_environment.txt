@@ -1,0 +1,71 @@
+# 1. in your favorite language, write a script to plot data in data/coding-environment-exercise.csv;
+
+# plot data from GitHub using R 
+
+raw_data <- read.csv('https://raw.githubusercontent.com/ipozdeev/it-skills-for-research/master/data/coding-environment-exercise.csv') 
+raw_data$date <- as.Date(raw_data$date) 
+
+library(ggplot2) 
+ggplot(raw_data, aes(x = date, y = value)) + geom_line(color = '#F5766F') 
+
+
+# 2. write a Dockerfile that would allow anyone to do the same plotting that you did, in the same language, given that the .csv file above is present in folder data/; 
+# anyone should be able to cd into some folder, copy your Dockerfile and data/coding-environment-exercise.csv therein, build the image, create a container, plot the data and either see the plot or be able to copy it to the local machine.
+
+# escape=` 
+
+# choose parent image 
+FROM r-base:latest 
+
+# information of maintainer 
+LABEL maintainer = "Jaspacito" 
+
+# run commands 
+RUN raw_data <- read.csv('data/coding-environment-exercise.csv') && raw_data$date <- as.Date(raw_data$date) && library(ggplot2) && ggplot(raw_data, aes(x = date, y = value)) + geom_line(color = '#F5766F') 
+
+
+
+
+
+
+
+
+
+
+# 制定环境
+FROM python:latest
+# 把当前目录（.） 复制到docker image中./app文件夹
+COPY . /app
+# 制定docker image的工作路径
+WORKDIR /app
+# install dependencies
+RUN pip install numpy
+RUN pip install matplotlib
+RUN pip install pandas
+
+CMD ["python", "plot.py"]
+
+#commands to run
+
+# docker build ./ -t plot
+# docker images
+# docker run plot
+# 这个命令就可以生成container（虚拟机）
+
+# docker ps -a
+# docker cp <container id from ps -a>:/app/plot.png ./
+
+
+
+
+import pandas as pd
+import matplotlib.pyplot as plt
+df = pd.read_csv('./data/coding-environment-exercise.csv')
+data = df.to_numpy().T
+plt.plot(data[0], data[1])
+plt.savefig('plot.png', bbox_inches='tight')
+
+
+
+
+

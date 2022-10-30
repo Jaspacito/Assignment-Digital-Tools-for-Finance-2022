@@ -1,0 +1,45 @@
+1. install a nice text editor;
+
+VScode 
+
+
+2. install Python (best with anaconda or miniconda) and make sure you can run pip or conda from the command line;
+
+which pip 
+/Users/Jasper/opt/anaconda3/bin/pip
+which pip3 
+/Library/Frameworks/Python.framework/Versions/3.10/bin/pip3
+
+
+3. install cookiecutter;
+
+cookiecutter -V 
+Cookiecutter 1.7.3 from /Users/Jasper/opt/anaconda3/lib/python3.9/site-packages (Python 3.9)
+
+
+4. create a directory for the group project you are supposed to hand in as the graded assignment for this course and set up a basic structure for it (best by using cookiecutter and trimming unnecessary stuff);
+
+cd /Users/Jasper && pwd 
+
+cookiecutter https://github.com/drivendata/cookiecutter-data-science # project_name: DTFF2022, repo: DTFF2022 
+
+
+5. create an environment variable RESEARCH_PATH (don't forget about the platform-specific '&' and '%') referencing the folder with all your projects;
+
+RESEARCH_PATH = "/Users/Jasper/DTFF2022" 
+
+
+6. (optional) if unhappy with Python, install R or Julia or anything of your choice;
+
+RStudio
+
+
+7. install git and create an account on GitHub;
+
+git version 2.37.0 (Apple Git-136)
+
+
+8. make sure you can run git from the command line (on Windows, you can install git bash to emulate the terminal for git-related commands).
+
+git -v 
+
