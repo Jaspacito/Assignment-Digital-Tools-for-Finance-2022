@@ -1,0 +1,151 @@
+# 1. Re-do the toy example of a two-person workflow from src/git/git-workflow.txt (extending it to three or more people if you want).
+
+##  git-workflow.txt
+
+
+##  alice:
+##  - set up
+##  - in 'test-alice' create file 'functions.txt', write 'THIS LINE IS OK' in it, add+commit+push
+
+# create folder test-alice and set as working directory 
+mkdir /Users/Jasper/homework/test-alice 
+cd /Users/Jasper/homework/test-alice 
+
+# create file 
+echo 'THIS LINE IS OK' > functions.txt 
+
+# commit 
+git init 
+git add . 
+git commit -m 'initial commit from alice' 
+
+# push to remote repo 
+git remote add origin https://github.com/Jaspacito/homework-week4.git 
+git push -u origin main 
+
+
+##  bob:
+##  - pull (nb branch)
+##  - change line #1 to 'THIS LINE IS BAD'
+##  - pull (nothing changes)
+##  - add+commit+push
+
+# create folder and set as working directory 
+mkdir /Users/Jasper/homework/test-bob 
+cd /Users/Jasper/homework/test-bob 
+
+# pull from remote branch, create new branch nb 
+git clone https://github.com/Jaspacito/homework-week4.git ./ 
+git checkout -b nb 
+
+# change line #1 
+
+# pull, nothing changes on files of local nb branch 
+git pull origin main 
+
+# add, commit and push 
+git add . 
+git commit -m 'first commit from bob' 
+git push origin nb  
+
+
+##  alice:
+##  - add another line 'THIS #2 LINE IS OK', change line #1 to 'THIS LINE IS STILL OK'
+##  - pull (should fail, need to commit the changes first)
+##  - add+commit
+##  - pull, resolve conflicts by accepting line 1 from bob and line 2 from self
+##  - commit+push
+
+# add line locally 
+
+# pull 
+git pull origin main 
+
+# add, commit 
+git add . 
+git commit -m 'change two lines' 
+
+# pull, resolve coflicts 
+git config pull.rebase false 
+git pull origin main 
+
+# commit, push 
+git add . 
+git commit -m 'resolve conflicts' 
+git push origin main 
+
+
+##  bob:
+##  - git log to see identity of commits
+##  - pull (should see two lines)
+##  - want to continue working on the first line until it is ok
+##  - create a new branch 'feature-1'
+##  - change line #1 to 'THIS LINE WAS BAD BUT NOW IS OK'
+##  - add+commit+push
+
+# log 
+git log 
+
+# pull 
+git checkout main 
+git pull origin main 
+
+# cerate new branch 
+git checkout -b feature-1 
+
+# change line #1 
+
+# add, commit, push 
+git add . 
+git commit -m 'change line 1 by bob' 
+git push --set-upstream origin feature-1
+git push origin feature-1:feature-1 
+
+
+##  alice:
+##  - pull without switching branches (nothing changes)
+
+# pull 
+git pull origin main 
+
+
+##  bob:
+##  - change line #1 to 'THIS LINE IS FINALLY OK'
+##  - add+commit+push
+##  - open pull request
+
+# change line #1 
+git pull origin feature-1:feature-1
+
+# add, commit, push 
+git add . 
+git commit -m 'change line 1 by bob' 
+git push origin feature-1:feature-1 
+
+# open pull request 
+# by GitHub 
+
+
+##  alice:
+##  - checkout
+##  - merge branch into main
+##  - push
+
+# checkout 
+git pull origin feature-1:feature-1 
+git checkout main 
+
+# merge 
+git merge feature-1 
+
+# push 
+git push origin main 
+
+
+##  bob:
+##  - pull
+
+# pull 
+git pull origin main:main 
+
+
