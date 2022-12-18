@@ -18,7 +18,11 @@ The main purpose of this research is to test the inflation hedging ability of di
 
 ## Data 
 
+### Data Source 
 Inflation data can be obtained from the websites of World Bank or from national central banks. The data of financial assets can be obtained from Bloomberg, Reuters, Yahoo Finance, etc. Given that the center of this research is inflation, it is expected to use long-term data, e.g. ten-year monthly data. 
+
+### Data Management 
+The research focues on the monthly data of no more than 30 types of financial or economical data. Even the raw data covers the period of several years, or is in daily basis, the size of each `.csv` file is no larger than 10M. Furthermore, most of the data needed in this research is a long-formatted and monthly time series data with the most simple structure. Therefore, it is not neccessary to implement an local or online database with SQL or other tools, and uploading these `.csv` files to Github would be a better way to share data within the team. 
 
 
 ## Reference 
