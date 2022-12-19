@@ -1,0 +1,383 @@
+---
+title: "data"
+author: "Zhiying Hu"
+date: "2022-12-10"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r, message = FALSE, results='hide'}
+packs.inst <- c("readxl","foreign","dplyr","tidyr","ggplot2","stargazer","haven","dummies","Hmisc","lmtest","sandwich", "doBy", "multiwayvcov", "miceadds", "car", "purrr", "knitr", "zoo", "readstata13", "tidyverse", "psych","wesanderson", "lubridate","reporttools", "data.table", "devtools","rmarkdown","estimatr", "ivpack", "Jmisc", "lfe", "plm", "tinytex", "xts", "psych", "PerformanceAnalytics","roll", "rollRegres", "glmnet", "hdm", "broom", "RCurl", "learnr", "maps", "fGarch", "remotes", "RPostgreSQL", "DBI", "RPostgreSQL", "remotes", "RPostgres", "Rmisc", "ggthemes", "splitstackshape", "gginference", "MASS","fBasics","xtable")
+packs.load <- c("fGarch")
+# lapply(packs.inst, install.packages, character.only = FALSE) 
+lapply(packs.inst, require, character.only = TRUE)
+```
+
+# Part 1: deal with the data
+## import data
+```{r}
+# real inflation rate from monthly year-on-year CPI
+CPI <- read.csv("~/Desktop/DTFF_final/data/CPI.csv")
+# expected inflation rate from 1-year bond yield to maturity
+bond <- read.csv("~/Desktop/DTFF_final/data/bond.csv")
+# commodity futures' price data
+commodity <- read.csv("~/Desktop/DTFF_final/data/commodity.csv")[-1,]
+# stock and gold price
+stock_gold <- read.csv("~/Desktop/DTFF_final/data/stock_gold.csv")[-1,]
+# real estate price
+realestate <- read.csv("~/Desktop/DTFF_final/data/real_estate.csv")
+```
+## time-series data
+```{r}
+dateymd <- as.Date(ymd(commodity[,1]))
+CPI_ts <- xts(x = CPI[,-1], order.by = dateymd)
+bond_ts <- xts(x = bond[,-1], order.by = dateymd)
+commodity_ts <- xts(x = commodity[,-1], order.by = dateymd)
+stock_gold_ts <- xts(x = stock_gold[,-1], order.by = dateymd)
+realestate_ts <- xts(x = realestate[,-1], order.by = dateymd[18:156])
+```
+## merger the returns
+```{r}
+# calculate the monthly year-on-year logarithm yield
+colnames(CPI_ts) <- "monthly year-on-year CPI"
+CPI_log_ts <- log(1+CPI_ts[,1])
+colnames(CPI_log_ts) <- "real_inflation" # from 2009-01
+# 1-year bond t-1 the yield of maturity is used as the expected inflation rate at time t
+bond_lag_ts <- stats::lag(bond_ts,1)
+colnames(bond_lag_ts) <- "expected_inflation" # value from 2009-02
+# monthly year-on-year logarithm yield of commodities
+commodity_log_ts <- log(commodity_ts) - log(stats::lag(commodity_ts,12)) # from 2010-01, 12 values
+# monthly year-on-year logarithm yield of stock and gold
+stock_gold_log_ts <- log(stock_gold_ts) - log(stats::lag(stock_gold_ts,12)) # from 2010-01, 12 values
+# monthly year-on-year logarithm yield of real estate
+realestate_log_ts <- log(realestate_ts) - log(stats::lag(realestate_ts,12)) # from 2011-06, 12 values
+
+CPI_log_ts <- CPI_log_ts[13:156,]
+bond_lag_ts <- bond_lag_ts[13:156,]
+commodity_log_ts <- commodity_log_ts[13:156,]
+stock_gold_log_ts <- stock_gold_log_ts[13:156,]
+unexpected_inflation <- CPI_log_ts - bond_lag_ts 
+colnames(unexpected_inflation) <- "unexpected_inflation"
+realestate_log_ts <- realestate_log_ts[13:139,]
+DATA3 <- merge.xts(CPI_log_ts, bond_lag_ts, unexpected_inflation, commodity_log_ts, stock_gold_log_ts, realestate_log_ts)
+save(DATA3,file = "DATA.RData")
+```
+
+# Part 2: Examination of the Inflation Hedging Ability
+## regression of commodity futures
+```{r}
+## commodity futures
+library(stargazer)
+cm_lm1 =list()
+for (i in 4:7) {
+  cm_lm1[[i-3]]  <- lm(DATA3[,i] ~ DATA3$expected_inflation + DATA3$unexpected_inflation)}
+cm_reg1 <- stargazer(cm_lm1, dep.var.labels = "asset", align = TRUE, df = FALSE)
+
+cm_lm2 =list()
+for (i in 8:11) {
+  cm_lm2[[i-7]]  <- lm(DATA3[,i] ~ DATA3$expected_inflation + DATA3$unexpected_inflation)}
+cm_reg2 <- stargazer(cm_lm2, dep.var.labels = "asset", align = TRUE, df = FALSE)
+
+cm_lm3 =list()
+for (i in 12:15) {
+  cm_lm3[[i-11]]  <- lm(DATA3[,i] ~ DATA3$expected_inflation + DATA3$unexpected_inflation)}
+cm_reg3 <- stargazer(cm_lm3, dep.var.labels = "asset", align = TRUE, df = FALSE)
+
+cm_lm4 =list()
+for (i in 16:19) {
+  cm_lm4[[i-15]]  <- lm(DATA3[,i] ~ DATA3$expected_inflation + DATA3$unexpected_inflation)}
+cm_reg4 <- stargazer(cm_lm4, dep.var.labels = "asset", align = TRUE, df = FALSE)
+```
+## regression of spot gold
+```{r}
+## spot gold
+sg <- lm(DATA3$Gold_price ~ DATA3$expected_inflation + DATA3$unexpected_inflation)
+sg_reg <- stargazer(sg, dep.var.labels = "Spot Gold", align = TRUE, df = FALSE)
+```
+## regression of industry stocks
+```{r}
+## industry stocks
+stock_lm1 =list()
+for (i in 21:25) {
+  stock_lm1[[i-20]]  <- lm(DATA3[,i] ~ DATA3$expected_inflation + DATA3$unexpected_inflation)}
+stock_reg1 <- stargazer(stock_lm1, dep.var.labels = "industry stocks", align = TRUE, df = FALSE)
+
+stock_lm2 =list()
+for (i in 26:30) {
+  stock_lm2[[i-25]]  <- lm(DATA3[,i] ~ DATA3$expected_inflation + DATA3$unexpected_inflation)}
+stock_reg2 <- stargazer(stock_lm2, dep.var.labels = "industry stocks", align = TRUE, df = FALSE)
+```
+## regression of real estate
+```{r}
+## real estate
+estate_lm = list()
+for (i in 31:33) {
+  estate_lm[[i-30]]  <- lm(DATA3[,i] ~ DATA3$expected_inflation + DATA3$unexpected_inflation)}
+estate_reg <- stargazer(estate_lm, dep.var.labels = "real estate", align = TRUE, df = FALSE)
+```
+## result of inflation hedging effect
+```{r}
+assetnames <- colnames(DATA3[,-(1:3)])
+Expected   = c(assetnames[c(1,2,3,6,7,8,9,10,12,13,17,19,23,25,29,30)],NA)
+Unexpected = assetnames[c(2,4,6,7,8,10,11,12,13,17,19,20,21,23,24,27,30)]
+HedgingAbility <- cbind(Expected, Unexpected)
+as.data.frame(HedgingAbility)
+xtable(as.data.frame(HedgingAbility))
+```
+
+# Part 3: Inflation Hedgig Portfolio by Mean Variance Method
+## exclude assets which have no inflation hedging effect
+```{r}
+asset_returns <- DATA3[,-c(1:3)]
+asset_returns <- asset_returns[,-c(5,14,15,16,18,22,26,28)]
+save(asset_returns, file="asset_returns.RData")
+dim(asset_returns)
+```
+## the set of attainable portfolios
+```{r}
+# Calculate the mean vector and covariance matrix
+mean_ret <- colMeans(asset_returns, na.rm = T)
+cvar_ret <- cov(na.omit(asset_returns))
+
+# Calculate individual weights 
+for (i in colnames(asset_returns)[-(dim(asset_returns)[2])]) {
+  weight = runif(10000, min=-1.5, max=1.5)
+  names = paste0(i,"_weight")
+  if (i == "soybeans.No..1"){
+    weight_final = weight
+    names_final = names}
+  else {
+    weight_final = cbind(weight_final, weight)
+    names_final = cbind(names_final, names)}
+  }
+
+# Get the dataframe and matrix on the weights
+weight_df <- as.data.frame(weight_final)
+colnames(weight_df) <- names_final
+
+weight_df$sum <- rowSums(weight_df)
+weight_df$third.tier <- 1 - weight_df$sum 
+weight_df$sum <- NULL
+
+matrix_weights <- as.matrix(weight_df)
+
+# report the weights of the matrix
+str(data.frame(matrix_weights))
+head(data.frame(matrix_weights))
+
+# Calculate the feasible expected returns and standard deviations
+feasible_pf_mu = matrix_weights%*%mean_ret
+feasible_pf_sd = apply(matrix_weights, 1, function(x) sqrt(t(x) %*% cvar_ret %*% x))
+
+# Construct the feasible dataframe, consisting of 10000 differently weighted risk and return combinations
+feasible_pf <- as.data.frame(cbind(feasible_pf_mu, feasible_pf_sd))  
+colnames(feasible_pf) <- c("Portfolio_Return", "Portfolio_Risk")
+
+# report the feasible dataframe
+str(feasible_pf)
+head(feasible_pf)
+
+# Now, let's visualise the relationship
+feasible_pf %>% 
+  ggplot(aes(x= Portfolio_Risk, y = Portfolio_Return)) + 
+  geom_point(color = "grey") + 
+  geom_point(data = subset(feasible_pf, Portfolio_Risk <= 0.12 & Portfolio_Return >= 0), color = "darkorchid3", shape = 1, aes(x= Portfolio_Risk, y = Portfolio_Return)) +
+  geom_point(data = subset(feasible_pf, Portfolio_Risk > 0.12 & Portfolio_Risk <= 0.14 & Portfolio_Return >= 0.07), color = "darkorchid3", shape = 1,aes(x= Portfolio_Risk, y = Portfolio_Return)) +
+  geom_point(data = subset(feasible_pf, Portfolio_Risk > 0.14 & Portfolio_Risk <= 0.16 & Portfolio_Return >= 0.09), color = "darkorchid3", shape = 1,aes(x= Portfolio_Risk, y = Portfolio_Return)) +
+  geom_point(data = subset(feasible_pf, Portfolio_Risk > 0.16 & Portfolio_Risk <= 0.18 & Portfolio_Return >= 0.1), color = "darkorchid3", shape = 1,aes(x= Portfolio_Risk, y = Portfolio_Return)) +
+  geom_point(data = subset(feasible_pf, Portfolio_Risk > 0.18 & Portfolio_Risk <= 0.20 & Portfolio_Return >= 0.11), color = "darkorchid3",shape = 1, aes(x= Portfolio_Risk, y = Portfolio_Return)) +
+  geom_point(data = subset(feasible_pf, Portfolio_Risk > 0.2 & Portfolio_Risk <= 0.22 & Portfolio_Return >= 0.11), color = "darkorchid3", shape = 1, aes(x= Portfolio_Risk, y = Portfolio_Return)) +
+  ylab(expression(mu[p])) + xlab(expression(sigma[p])) + ggtitle("Porfolio Frontier for 10'000 different weights") +
+  labs(color='Factor Portfolios') +
+  theme(plot.title= element_text(size=14, color="grey26",
+  hjust=0.3,lineheight=2.4, margin=margin(15,0,15,0)), 
+  panel.background = element_rect(fill="#f7f7f7"),
+  panel.grid.major.y = element_line(size = 0.5, linetype = "solid", color = "grey"),
+  panel.grid.minor = element_blank(),
+  panel.grid.major.x = element_blank(),
+  plot.background = element_rect(fill="#f7f7f7", color = "#f7f7f7"), 
+  axis.title.y = element_text(color="grey26", size=12, margin=margin(0,10,0,10)),
+  axis.title.x = element_text(color="grey26", size=12, margin=margin(10,0,10,0)),
+  axis.line = element_line(color = "grey"))
+```
+## the minmum - variance portfolio
+```{r}
+# Define the matrix A. It consists of: 
+
+## - the covariance matrix multiplied by two
+## - a column right to the covariance matrix, consisting of 1's
+## - a row right below the covariance matrix and the additional column, consisting of 1's and one zero (the zero is in the right-bottom of the resulting matrix)
+mat_A <- rbind(cbind(2*cvar_ret, rep(1, dim(cvar_ret)[1])), 
+               c(rep(1, dim(cvar_ret)[1]), 0))
+# Define the vector b as vector of zeros with dimension of the covariance matrix (19 in this case) and one 1 at the bottom
+vec_b <- c(rep(0, dim(cvar_ret)[1]), 1)
+# Calculate the inverse and perform matrix multiplication to get the vector z
+z <- solve(mat_A)%*%vec_b
+# Derive the first N elements of the vector to retrieve the actual values 
+x_MV <- z[1:dim(cvar_ret)[1]]
+# Check that the sum adds up to 1
+sum(x_MV)
+```
+```{r}
+# Calculate the expected return: 
+mu_MV <- x_MV %*% mean_ret
+sd_MV <- sqrt(t(x_MV) %*% cvar_ret %*% x_MV)
+# Create the appropriate dataframe
+MV_PF <- as.data.frame(cbind(mu_MV, sd_MV, t(x_MV)))
+colnames(MV_PF) <- c("Mu_MV", "Sd_MV",names_final, "third.tier_weight")
+as.data.frame(t(MV_PF))
+```
+
+```{r}
+# Now, let's visualize the relationship
+feasible_pf %>% 
+  ggplot(aes(x= Portfolio_Risk, y = Portfolio_Return)) + 
+  geom_point(color = "grey") +
+  # This is just to color in the "optimal PFs"
+  geom_point(data = subset(feasible_pf, Portfolio_Risk <= 0.12 & Portfolio_Return >= 0.02), color = "darkorchid3", shape = 1, aes(x= Portfolio_Risk, y = Portfolio_Return)) +
+  geom_point(data = subset(feasible_pf, Portfolio_Risk > 0.12 & Portfolio_Risk <= 0.14 & Portfolio_Return >= 0.07), color = "darkorchid3", shape = 1,aes(x= Portfolio_Risk, y = Portfolio_Return)) +
+  geom_point(data = subset(feasible_pf, Portfolio_Risk > 0.14 & Portfolio_Risk <= 0.16 & Portfolio_Return >= 0.09), color = "darkorchid3", shape = 1,aes(x= Portfolio_Risk, y = Portfolio_Return)) +
+  geom_point(data = subset(feasible_pf, Portfolio_Risk > 0.16 & Portfolio_Risk <= 0.18 & Portfolio_Return >= 0.1), color = "darkorchid3", shape = 1,aes(x= Portfolio_Risk, y = Portfolio_Return)) +
+  geom_point(data = subset(feasible_pf, Portfolio_Risk > 0.18 & Portfolio_Risk <= 0.20 & Portfolio_Return >= 0.11), color = "darkorchid3",shape = 1, aes(x= Portfolio_Risk, y = Portfolio_Return)) +
+  geom_point(data = subset(feasible_pf, Portfolio_Risk > 0.2 & Portfolio_Risk <= 0.22 & Portfolio_Return >= 0.11), color = "darkorchid3", shape = 1, aes(x= Portfolio_Risk, y = Portfolio_Return)) +
+  # Calculate and plot the Minimum Variance PF
+  geom_point(color = "goldenrod",  aes(x= MV_PF$Sd_MV, y = MV_PF$Mu_MV), size = 3) +
+  annotate('text',x = -0.01 ,y = 0, label = "Minimum Variance PF", size = 3.5, color = "goldenrod") +
+  ylab(expression(mu[p])) + xlab(expression(sigma[p])) + ggtitle("Minimum Variance portfolio") +
+  labs(color='Factor Portfolios') +
+  xlim(-0.10, 0.75) + 
+  theme(plot.title= element_text(size=14, color="grey26",
+  hjust=0.43,lineheight=2.4, margin=margin(15,0,15,0)), 
+  panel.background = element_rect(fill="#f7f7f7"),
+  panel.grid.major.y = element_line(size = 0.5, linetype = "solid", color = "grey"),
+  panel.grid.minor = element_blank(),
+  panel.grid.major.x = element_blank(),
+  plot.background = element_rect(fill="#f7f7f7", color = "#f7f7f7"), 
+  axis.title.y = element_text(color="grey26", size=12, margin=margin(0,10,0,10)),
+  axis.title.x = element_text(color="grey26", size=12, margin=margin(10,0,10,0)),
+  axis.line = element_line(color = "grey"))
+```
+## portfolio efficient frontier
+```{r}
+# First we calculate the first Efficient Portfolio
+# Define the EW return
+mu_spec_x <- mu_MV
+mu_spec_y <- 0.1
+
+# We first define again the Matrix A 
+mat_A_EF <- rbind(cbind(2*cvar_ret, mean_ret,  rep(1,dim(cvar_ret)[1])), 
+                  cbind(t(mean_ret), 0, 0), 
+                  cbind(t(rep(1,dim(cvar_ret)[1])), 0, 0))
+
+# Then, we define the vector b
+vec_b_EF_x <- c(rep(0, dim(cvar_ret)[1]), mu_spec_x, 1)
+vec_b_EF_y <- c(rep(0, dim(cvar_ret)[1]), mu_spec_y, 1)
+
+# Now, we can solve for the respective weights
+z_EF_x <- solve(mat_A_EF)%*%vec_b_EF_x
+z_EF_y <- solve(mat_A_EF)%*%vec_b_EF_y
+
+# Then, we take the first N elements to get the respective weights
+x_EF <- z_EF_x[1:dim(cvar_ret)[1]]
+y_EF <- z_EF_y[1:dim(cvar_ret)[1]]
+
+# Now, let's calculate the risk
+sd_EF_x <- sqrt(t(x_EF) %*% cvar_ret %*% x_EF)
+sd_EF_y <- sqrt(t(y_EF) %*% cvar_ret %*% y_EF)
+sd_EF_xy <- t(x_EF) %*% cvar_ret %*% y_EF
+```
+
+```{r}
+# Lastly, compute the weights and results
+a = seq(from=0, to=1, by=0.05) 
+# Create the expected return as well as the variance and standard deviation of each portfolios
+mu_z = a * mu_spec_x + (1-a) * mu_spec_y
+sd_z = sqrt(a^2*sd_EF_x^2 + (1-a)^2*sd_EF_y^2 + 2*a*(1-a)*sd_EF_xy)
+# Create a dataframe consisting of different weights
+z = matrix(0, length(a), dim(asset_returns)[2]) 
+
+for (i in 1:length(a)){
+  z[i, ] = a[i]*x_EF + (1-a[i])*y_EF
+  }
+
+# Create a dataframe consisting of only the efficient linear transformation portfolios
+z_df <- as.data.frame(cbind(mu_z, sd_z))
+colnames(z_df) <- c("Efficient_PF_Return", "Efficient_PF_Risk")
+```
+```{r}
+# Now, let's visualise the relationship
+z_df %>% 
+  ggplot(aes(x= Efficient_PF_Risk, y = Efficient_PF_Return), color = "goldenrod") + 
+  geom_point() + 
+  geom_path() + 
+  ylab(expression(mu[p])) + xlab(expression(sigma[p])) + ggtitle("The Portfolio Efficient Frontier") +
+  labs(color='Factor Portfolios') +
+  theme(plot.title= element_text(size=14, color="grey26",
+  hjust=0.3,lineheight=2.4, margin=margin(15,0,15,0)), 
+  panel.background = element_rect(fill="#f7f7f7"),
+  panel.grid.major.y = element_line(size = 0.5, linetype = "solid", color = "grey"),
+  panel.grid.minor = element_blank(),
+  panel.grid.major.x = element_blank(),
+  plot.background = element_rect(fill="#f7f7f7", color = "#f7f7f7"), 
+  axis.title.y = element_text(color="grey26", size=12, margin=margin(0,10,0,10)),
+  axis.title.x = element_text(color="grey26", size=12, margin=margin(10,0,10,0)),
+  axis.line = element_line(color = "grey")) 
+```
+```{r}
+# Calculate the TP
+## HINT: Choose a similar risk free rate as in the exercise session. 
+### import the risk-free data set
+rf <- DATA3[,2]
+### calculate the TP
+mu_f = mean(rf)
+## First the numerator and denominator 
+numerator_T_N <- inv(cvar_ret) %*% (mean_ret - mu_f*rep(1, length(mean_ret)))
+denominator_T_N <- t(rep(1, length(mean_ret)))%*%inv(cvar_ret)%*%(mean_ret - mu_f*rep(1, length(mean_ret)))
+## calculate the weights
+weights_T_N <- numerator_T_N[,1] / denominator_T_N
+weights_T_N
+return_T_N <- weights_T_N %*% mean_ret
+sd_T_N <- sqrt(t(weights_T_N) %*% cvar_ret %*% weights_T_N)
+```
+```{r}
+# Create the tangent portfolio
+
+## HINT: What is the risk of the risk-free asset and the covariance of it with the risky asset(s)?
+### define the risk of the risk-free asset and the covariance of it with risky assets
+sigma_f = 0
+sigma_Af = 0
+
+## Define the sequence
+x_tan = seq(from=-0.8, to=2.2, by=0.1)
+x_f = 1 - x_tan
+
+## Calculate the metrics
+### Calculate the risk and return metrics
+mu_T_N <- weights_T_N %*% mean_ret
+sd_T_N <- sqrt(t(weights_T_N)%*%cvar_ret%*%weights_T_N)
+
+### Create another dataframe
+mu_sd_T_N_df <- as.data.frame(cbind(mu_T_N, sd_T_N))
+colnames(mu_sd_T_N_df) <- c("mu_T_N", "sd_T_N")
+
+mu_tanf = x_tan*mu_T_N + x_f*mu_f
+var_tanf = x_tan^2*sd_T_N^2 + x_f^2*sigma_f^2 + 2*x_tan*x_f*sigma_Af
+sd_tanf = sqrt(var_tanf)
+
+# Only get the "positive returns" from the r_f on
+mu_tanf_real <- mu_tanf[1:9]
+sd_tanf_real <- sd_tanf[1:9]
+# Create a df
+cml_N <- as.data.frame(cbind(mu_tanf_real, sd_tanf_real))
+colnames(cml_N) <- c("MU_CML", "SD_CML")
+mu_sd_T_N_df
+```
+
+```{r}
+port <- as.data.frame(cbind(Minimum_Variance = c(t(x_MV), mu_MV, sd_MV),
+                            Tangency = c(weights_T_N, return_T_N, sd_T_N)))
+rownames(port) <-c(colnames(asset_returns), "Return", "sd")
+xtable(port, caption = "Weights of two portfolios", digits = 5)
+```
+
