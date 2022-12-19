@@ -27,7 +27,12 @@ Real inflation data is proxied by the monthly year-on-year CPI data in the form 
 Sixteen commodity futures' monthly settlement price data from Shanghai and Dalian futures exchange, 10 industry stocks' monthly closing price data from Hushen 300 industry index, spot gold's monthly closing price data from Shanghai Gold Exchange and monthly data on residential prices in Tier 1, Tier 2, and Tier 3 cities are obtained. Returns of these assets are calculated in the form of logarithmic monthly year-on-year yield.
 
 ### Data Management 
-The research focues on the monthly data of no more than 30 types of financial or economical data. Even the raw data covers the period of several years, or is in daily basis, the size of each `.csv` file is no larger than 10M. Furthermore, most of the data needed in this research is a long-formatted and monthly time series data with the most simple structure. Therefore, it is not neccessary to implement an local or online database with SQL or other tools, and uploading these `.csv` files to Github would be a better way to share data within the team. 
+The reaserch focues on the monthly data of no more than 30 types of financial or economical data. Even the raw data covers the period of several years, or is in daily basis, the size of each `.csv` file is no larger than 10M. Furthermore, most of the data needed in this reaserch is a long-formatted and monthly time series data with the most simple structure. Therefore, it is not neccessary to implement an local or online database with SQL or other tools, and uploading these `.csv` files to Github would be a better way to share data within the team. 
+
+
+## Notebook 
+
+The language mostly used in this reaserch is R, and the `.rmd` file in `./notebooks/` folder shows the R code of each step as well as the results, and could be modified to replicate this reaserch or try with other parameters of modelling. 
 
 
 ## Reference 
